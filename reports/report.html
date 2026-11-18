@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>P11 — Online News Popularity Report</title>
+<style>
+@page {
+    size: A4;
+    margin: 12mm 14mm 12mm 14mm;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f2328;
+    line-height: 1.4;
+    font-size: 11px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+h1 {
+    font-size: 18px;
+    border-bottom: 2px solid #0969da;
+    padding-bottom: 4px;
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #1f2328;
+}
+h2 {
+    font-size: 14px;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 3px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    color: #0969da;
+    page-break-after: avoid;
+}
+h3 {
+    font-size: 12px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    color: #24292f;
+    page-break-after: avoid;
+}
+p {
+    margin: 5px 0;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 10px;
+    page-break-inside: avoid;
+}
+th, td {
+    border: 1px solid #d0d7de;
+    padding: 3px 6px;
+    text-align: left;
+}
+th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+}
+tr:nth-child(even) {
+    background-color: #fcfdfd;
+}
+blockquote {
+    margin: 6px 0;
+    padding: 4px 10px;
+    color: #57606a;
+    background-color: #f6f8fa;
+    border-left: 3px solid #0969da;
+    font-size: 10.5px;
+}
+code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 10px;
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+pre {
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 8px;
+    overflow-x: auto;
+    font-size: 9.5px;
+    line-height: 1.35;
+    margin: 6px 0;
+    page-break-inside: avoid;
+}
+pre code {
+    background-color: transparent;
+    padding: 0;
+}
+img {
+    max-width: 65%;
+    max-height: 220px;
+    object-fit: contain;
+    display: block;
+    margin: 8px auto;
+    border: 1px solid #e1e4e8;
+    border-radius: 3px;
+    page-break-inside: avoid;
+}
+em {
+    color: #57606a;
+    font-size: 10px;
+}
+hr {
+    border: 0;
+    height: 1px;
+    background: #d0d7de;
+    margin: 12px 0;
+}
+ol, ul {
+    margin: 4px 0 6px 0;
+    padding-left: 20px;
+}
+li {
+    margin: 2px 0;
+}
+@media print {
+    body {
+        max-width: 100%;
+        padding: 0;
+    }
+}
+</style>
+</head>
+<body>
+<h1>P11 — Online News Popularity: predicting article sharing before publication</h1>
+<p><strong>Course:</strong> Introduction to Machine Learning — project lab · <strong>Group:</strong> G11 · <strong>Dataset:</strong> UCI <em>Online News Popularity</em> (Mashable)</p>
+<table>
+<thead>
+<tr>
+  <th>Deliverable</th>
+  <th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Notebook</td>
+  <td><code>notebooks/P11_online_news_popularity.ipynb</code></td>
+</tr>
+<tr>
+  <td>Code library</td>
+  <td><code>src/</code> (<code>data</code>, <code>preprocess</code>, <code>eda</code>, <code>regression</code>, <code>classification</code>, <code>interpret</code>, <code>run_all</code>)</td>
+</tr>
+<tr>
+  <td>Results (tables, figures)</td>
+  <td><code>reports/results/</code>, <code>reports/figures/</code></td>
+</tr>
+<tr>
+  <td>Live demo</td>
+  <td><code>demo/predict_demo.py</code></td>
+</tr>
+<tr>
+  <td>Repository</td>
+  <td><code>https://github.com/Akshitsingh070/online-news-popularity-iml</code> — layout and run instructions in <code>README.md</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Problem statement</h2>
+<p>Mashable published several thousand articles per year and shared them through its own site and
+social channels. Each article was tagged with a <strong>share count</strong> — the number of times it was
+distributed through social networks — and that number varies over four orders of magnitude, from a
+single share to almost a million.</p>
+<p><strong>Question.</strong> Given only properties of an article that are known <em>at the moment it is written</em> —
+its text statistics, its links and media, the popularity history of its keywords, its topic and its
+publishing day — can we predict how widely it will be shared?</p>
+<p>Two formulations are studied, because they answer two different business questions:</p>
+<ul>
+<li><strong>Regression.</strong> Predict <code>shares</code> as a number. This is what an editor wants (&quot;how many shares
+will this get?&quot;) and the formulation in which the task is hardest, because squared error is
+dominated by rare viral hits.</li>
+<li><strong>Classification.</strong> Predict a binary label <code>popular = shares ≥ median(training shares)</code>. This is
+what a content-planning tool actually needs (&quot;should this be scheduled in a prominent slot?&quot;) and
+it is a fairer test of whether the features carry signal at all.</li>
+</ul>
+<p>The deliverables are the executed notebook, this 6–8 page report, the repository and a 10-minute
+presentation with a live demo.</p>
+<hr />
+<h2>2. Data</h2>
+<h3>2.1 What we loaded, and the row-count discrepancy</h3>
+<p>The UCI dataset page advertises <strong>39 797 instances</strong>. The CSV inside the distributed archive
+(<code>OnlineNewsPopularity.zip</code>) does <strong>not</strong> contain that many rows: we load <strong>39 644 rows × 61
+columns</strong> — <strong>153 rows fewer</strong> than the page states. The count is verified at load time
+(<code>src/data.py::row_count_report</code>, exported to <code>reports/results/00_row_count.csv</code>) and the loaded
+number, not the advertised one, is used throughout.</p>
+<p>Structure of the 61 columns:</p>
+<table>
+<thead>
+<tr>
+  <th>block</th>
+  <th>columns</th>
+  <th>examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>identifier</td>
+  <td>1</td>
+  <td><code>url</code> — unique per article, dropped</td>
+</tr>
+<tr>
+  <td>timestamp</td>
+  <td>1</td>
+  <td><code>timedelta</code> — days since first article, dropped</td>
+</tr>
+<tr>
+  <td>text statistics</td>
+  <td>12</td>
+  <td><code>n_tokens_title</code>, <code>n_tokens_content</code>, <code>n_unique_tokens</code>, <code>average_token_length</code>, …</td>
+</tr>
+<tr>
+  <td>links &amp; media</td>
+  <td>4</td>
+  <td><code>num_hrefs</code>, <code>num_self_hrefs</code>, <code>num_imgs</code>, <code>num_videos</code></td>
+</tr>
+<tr>
+  <td>keyword quality</td>
+  <td>10</td>
+  <td><code>kw_avg_avg</code>, <code>kw_max_avg</code>, <code>kw_min_min</code>, …</td>
+</tr>
+<tr>
+  <td>keyword history</td>
+  <td>3</td>
+  <td><code>self_reference_min/max/avg_sharess</code></td>
+</tr>
+<tr>
+  <td>LDA topics</td>
+  <td>5</td>
+  <td><code>LDA_00 … LDA_04</code></td>
+</tr>
+<tr>
+  <td>sentiment</td>
+  <td>7</td>
+  <td><code>global_subjectivity</code>, <code>global_sentiment_polarity</code>, <code>abs_title_*</code></td>
+</tr>
+<tr>
+  <td>publishing day</td>
+  <td>7</td>
+  <td><code>weekday_is_monday … weekday_is_sunday</code>, <code>is_weekend</code></td>
+</tr>
+<tr>
+  <td>channel</td>
+  <td>6</td>
+  <td><code>data_channel_is_lifestyle … data_channel_is_world</code></td>
+</tr>
+<tr>
+  <td><strong>target</strong></td>
+  <td>1</td>
+  <td><code>shares</code></td>
+</tr>
+</tbody>
+</table>
+<p>Integrity checks (all in <code>reports/results/01_sanity.csv</code>): <strong>0 duplicate rows, 0 missing values</strong>.
+1 181 articles (3.0 %) have <code>n_tokens_content == 0</code> — link-only or gallery posts, for which the
+derived ratio features (<code>n_unique_tokens</code>, <code>n_non_stop_words</code>) are degenerate. We keep these rows
+rather than discarding 3 % of the corpus, and flag the consequence in §6.5. No article has
+<code>shares == 0</code>, so <code>log(shares)</code> needs no offset.</p>
+<h3>2.2 The target: extreme skew</h3>
+<table>
+<thead>
+<tr>
+  <th>statistic</th>
+  <th><code>shares</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>minimum</td>
+  <td>1</td>
+</tr>
+<tr>
+  <td>median (p50)</td>
+  <td>1 400</td>
+</tr>
+<tr>
+  <td>mean</td>
+  <td>3 395</td>
+</tr>
+<tr>
+  <td>p90 / p95 / p99</td>
+  <td>6 200 / 10 800 / 31 657</td>
+</tr>
+<tr>
+  <td>maximum</td>
+  <td>843 300</td>
+</tr>
+<tr>
+  <td>skewness</td>
+  <td><strong>33.96</strong></td>
+</tr>
+<tr>
+  <td>kurtosis</td>
+  <td>1 832.7</td>
+</tr>
+<tr>
+  <td>mean / median</td>
+  <td>2.43</td>
+</tr>
+<tr>
+  <td>share of all shares held by the top 1 % of articles</td>
+  <td><strong>21.8 %</strong></td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/exp1_shares_distribution.png" alt="Distribution of shares" /></p>
+<p><em>Figure 1 — raw shares (left, clipped at the 99.5th percentile) versus <code>log(shares)</code> (middle) and
+the log-scale spread (right). Log-skewness drops from 33.96 to 1.02.</em></p>
+<hr />
+<h2>3. Method</h2>
+<h3>3.1 Protocol</h3>
+<ul>
+<li>One <strong>80 / 20 hold-out split</strong> (<code>random_state = 42</code>): 31 715 training rows, 7 929 test rows,
+58 features.</li>
+<li>All preprocessing that learns from data (<code>StandardScaler</code>) is fitted on <strong>training rows only</strong>.</li>
+<li>The classification threshold is the <strong>training median = 1 400 shares</strong>, applied unchanged to the
+test rows. This keeps the test labels independent of the test distribution (popular rate: 0.536
+train / 0.524 test).</li>
+<li>Hyper-parameters are <strong>fixed, not tuned against the test set</strong>, because the experiment compares
+model <em>families</em>. The single exception is KNN's <code>k</code>, chosen on a 15 % validation slice carved out
+of the training data (k = 75 beat 35, 15 and 5: validation MAE on <code>log(shares)</code> 0.6364 vs
+0.6394 / 0.6472 / 0.6921).</li>
+</ul>
+<h3>3.2 Dropped columns</h3>
+<table>
+<thead>
+<tr>
+  <th>column</th>
+  <th>reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>url</code></td>
+  <td>Unique per article. It cannot generalise to an unpublished article; a tree could memorise individual rows.</td>
+</tr>
+<tr>
+  <td><code>timedelta</code></td>
+  <td>Days since the first article — a publication timestamp. A truthful <em>before-publication</em> prediction does not know the date, and keeping it would let the model memorise specific weeks of a fixed two-year window.</td>
+</tr>
+</tbody>
+</table>
+<p>58 features remain, matching the dataset documentation.</p>
+<h3>3.3 Why <code>log(shares)</code> (Exp. 2)</h3>
+<p><code>shares</code> is heavy-tailed, so a squared-error model on the raw scale is dominated by a handful of
+viral articles: the loss is minimised by predicting a conditional <strong>mean</strong> that few articles
+actually have. Modelling <code>log(shares)</code> compresses four orders of magnitude into a roughly symmetric
+target (skew 1.02), stabilises the variance and turns multiplicative effects into additive ones.</p>
+<p>The claim is measured, not asserted — same model, same split, both scored back on the share scale
+(<code>reports/results/exp2_log_vs_raw_target.csv</code>):</p>
+<table>
+<thead>
+<tr>
+  <th>target</th>
+  <th>MAE (shares)</th>
+  <th>median abs. error (shares)</th>
+  <th>R² (share scale)</th>
+  <th>R² (log scale)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>raw <code>shares</code></td>
+  <td>2 998.7</td>
+  <td>1 682.3</td>
+  <td><strong>+0.0262</strong></td>
+  <td>−0.3898</td>
+</tr>
+<tr>
+  <td><code>log(shares)</code></td>
+  <td><strong>2 347.8</strong></td>
+  <td><strong>733.1</strong></td>
+  <td>−0.0029</td>
+  <td><strong>+0.1274</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The raw-target model &quot;wins&quot; on share-scale R² only because one 843 300-share article inflates the
+variance it is accidentally close to; for the <strong>typical</strong> article it is off by 1 682 shares versus
+733 for the log model — a 2.3× difference that no editor would ignore. We therefore model the log
+and <strong>always report metrics after mapping predictions back</strong> with <code>expm1</code>, clipped at 1 share. This
+is deliberate: the badly-behaved tail still shows up in R², so the log transform does not hide the
+model's failure on virality.</p>
+<h3>3.4 Models and settings</h3>
+<table>
+<thead>
+<tr>
+  <th>family</th>
+  <th>regression</th>
+  <th>classification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Linear</td>
+  <td><code>LinearRegression</code> on standardised features</td>
+  <td><code>LogisticRegression(max_iter=2000, C=1)</code> on standardised features</td>
+</tr>
+<tr>
+  <td>Decision Tree</td>
+  <td><code>min_samples_leaf=5</code></td>
+  <td><code>max_depth=8, min_samples_leaf=20</code></td>
+</tr>
+<tr>
+  <td>Random Forest</td>
+  <td>300 trees, <code>min_samples_leaf=2</code>, <code>max_features=0.5</code></td>
+  <td>same</td>
+</tr>
+<tr>
+  <td>KNN</td>
+  <td><code>k=75</code>, distance weights, standardised</td>
+  <td>same</td>
+</tr>
+<tr>
+  <td>SVM</td>
+  <td>—</td>
+  <td><code>SVC(kernel=&quot;rbf&quot;, C=1, gamma=&quot;scale&quot;)</code>, full 31 715-row training set (131 s)</td>
+</tr>
+</tbody>
+</table>
+<p>Tree depth / leaf sizes were chosen as conservative defaults to avoid memorising 31 715 rows of
+noise; the comparison in §4 is therefore between families at comparable regularisation strength, not
+between individually tuned models.</p>
+<h3>3.5 Metrics</h3>
+<ul>
+<li><strong>MAE (shares)</strong> — average absolute error in shares, on the original scale.</li>
+<li><strong>R² (share scale)</strong> — coefficient of determination on the original scale; the primary regression
+metric, and the one the brief asks for.</li>
+<li><strong>R² (log scale)</strong> — reported alongside because it is the scale the models were fitted on.</li>
+<li><strong>F1 (popular)</strong> — harmonic mean of precision and recall for the positive (&quot;popular&quot;) class;
+ROC-AUC added as a threshold-free companion.</li>
+<li><strong>Baseline</strong> — &quot;always predict the training median (1 400 shares)&quot;. Any regressor that cannot beat
+it on MAE is useless in practice.</li>
+</ul>
+<hr />
+<h2>4. Results</h2>
+<h3>4.1 Exp. 1 — EDA: which features relate to <code>log(shares)</code>?</h3>
+<p>Spearman correlation with <code>log(shares)</code> (<code>reports/results/exp1_correlations.csv</code>):</p>
+<table>
+<thead>
+<tr>
+  <th>feature</th>
+  <th>Spearman ρ</th>
+  <th>Pearson r</th>
+  <th>what it measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>kw_avg_avg</code></td>
+  <td><strong>+0.256</strong></td>
+  <td>+0.222</td>
+  <td>average share count of the article's keywords</td>
+</tr>
+<tr>
+  <td><code>kw_max_avg</code></td>
+  <td>+0.223</td>
+  <td>+0.109</td>
+  <td>best-performing keyword</td>
+</tr>
+<tr>
+  <td><code>self_reference_avg_sharess</code></td>
+  <td>+0.192</td>
+  <td>+0.087</td>
+  <td>average shares of articles this one links to</td>
+</tr>
+<tr>
+  <td><code>self_reference_min_shares</code></td>
+  <td>+0.182</td>
+  <td>+0.073</td>
+  <td>weakest self-referenced article</td>
+</tr>
+<tr>
+  <td><code>self_reference_max_shares</code></td>
+  <td>+0.169</td>
+  <td>+0.077</td>
+  <td>strongest self-referenced article</td>
+</tr>
+<tr>
+  <td><code>data_channel_is_world</code></td>
+  <td>−0.168</td>
+  <td>−0.152</td>
+  <td>world-news channel</td>
+</tr>
+<tr>
+  <td><code>LDA_02</code></td>
+  <td>−0.157</td>
+  <td>−0.165</td>
+  <td>one specific topic mixture</td>
+</tr>
+<tr>
+  <td><code>is_weekend</code></td>
+  <td>+0.152</td>
+  <td>+0.114</td>
+  <td>published on a weekend</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/exp1_top_correlations.png" alt="Top correlations" />
+<em>Figure 2 — Spearman correlation with <code>log(shares)</code>, top 20 features.</em></p>
+<p>Medians by channel (<code>reports/results/exp1_channels.csv</code>): social media 2 100 shares (n = 2 323),
+no channel 1 900 (6 134), lifestyle 1 700 (2 099), tech 1 700 (7 346), business 1 400 (6 258),
+entertainment 1 200 (7 057), world 1 100 (8 427). A ~2× spread in medians — real, but modest.</p>
+<p><strong>Reading.</strong> Every strong correlate is a <em>history</em> variable: how similar content performed before.
+No purely textual property (length, sentiment, readability) reaches ρ = 0.1. The strongest single
+signal in the entire corpus is therefore not a property of the article at all, but a property of
+Mashable's past audience behaviour — a warning we return to in §5.</p>
+<h3>4.2 Exp. 3–7 — Regression (target <code>log(shares)</code>, metrics on the share scale)</h3>
+<table>
+<thead>
+<tr>
+  <th>model</th>
+  <th>MAE (shares)</th>
+  <th>RMSE</th>
+  <th><strong>R² (share scale)</strong></th>
+  <th>R² (log scale)</th>
+  <th>median abs. error</th>
+  <th>fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Baseline: training median</td>
+  <td>2 395.4</td>
+  <td>11 152.9</td>
+  <td>−0.0308</td>
+  <td>−0.0578</td>
+  <td>600.0</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>Linear Regression</td>
+  <td>2 347.8</td>
+  <td>11 000.9</td>
+  <td>−0.0029</td>
+  <td>0.1274</td>
+  <td>733.1</td>
+  <td>0.1 s</td>
+</tr>
+<tr>
+  <td>Decision Tree</td>
+  <td>3 019.3</td>
+  <td>11 340.3</td>
+  <td>−0.0657</td>
+  <td>−0.3903</td>
+  <td>975.1</td>
+  <td>2.0 s</td>
+</tr>
+<tr>
+  <td><strong>Random Forest</strong></td>
+  <td><strong>2 316.5</strong></td>
+  <td><strong>10 967.0</strong></td>
+  <td><strong>0.0033</strong></td>
+  <td><strong>0.1697</strong></td>
+  <td>745.8</td>
+  <td>18.1 s</td>
+</tr>
+<tr>
+  <td>KNN Regressor (k=75)</td>
+  <td>2 334.9</td>
+  <td>11 034.9</td>
+  <td>−0.0091</td>
+  <td>0.1077</td>
+  <td><strong>703.8</strong></td>
+  <td>0.3 s</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/exp3_pred_vs_actual.png" alt="Predicted vs actual" />
+<em>Figure 3 — predicted vs actual shares (log axes) for the four regressors. Predictions form a narrow
+vertical band; articles above ~50 000 shares are systematically under-predicted.</em></p>
+<p><strong>Honest reading.</strong></p>
+<ul>
+<li>The <strong>Random Forest is the best</strong> model on MAE and on both R² definitions, but its share-scale
+R² of <strong>0.003</strong> means it explains essentially none of the raw variance. It beats the constant
+baseline by 79 shares of MAE (3 %), which is a real but small gain.</li>
+<li>The <strong>Decision Tree is worse than the baseline</strong> (R² −0.07): a single tree partitions 31 715 noisy
+rows into boxes whose means are unstable, the textbook variance problem that bagging fixes.</li>
+<li><strong>KNN</strong> has the lowest <em>median</em> absolute error (704 vs 746 shares) — it is decent on typical
+articles and hopeless on the tail, because averaging 75 neighbours always lands near the middle.</li>
+<li>Two of five models have <strong>negative</strong> R² on the raw scale: predicting the mean is genuinely better
+in squared-error terms than trying to chase variance that the features do not contain.</li>
+</ul>
+<p><strong>Ranking still works (Figure 4 / <code>exp3_quintile_calibration.csv</code>).</strong> Sorting the 7 929 test
+articles by the Random Forest's prediction and splitting into quintiles:</p>
+<table>
+<thead>
+<tr>
+  <th>predicted quintile</th>
+  <th>predicted median</th>
+  <th>actual median</th>
+  <th>actual mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Q1 (lowest)</td>
+  <td>1 105</td>
+  <td>957</td>
+  <td>1 535</td>
+</tr>
+<tr>
+  <td>Q2</td>
+  <td>1 453</td>
+  <td>1 200</td>
+  <td>2 292</td>
+</tr>
+<tr>
+  <td>Q3</td>
+  <td>1 769</td>
+  <td>1 400</td>
+  <td>2 692</td>
+</tr>
+<tr>
+  <td>Q4</td>
+  <td>2 197</td>
+  <td>1 900</td>
+  <td>3 762</td>
+</tr>
+<tr>
+  <td>Q5 (highest)</td>
+  <td>2 987</td>
+  <td><strong>2 700</strong></td>
+  <td>6 355</td>
+</tr>
+</tbody>
+</table>
+<p>Actual medians climb monotonically, a <strong>2.8× lift from Q1 to Q5</strong>. The model cannot say <em>how many</em>
+shares an article will get, but it can say which of two articles is more likely to travel — that is
+the realistic deliverable.</p>
+<h3>4.3 Exp. 4–8 — Classification (popular = shares ≥ 1 400, training median)</h3>
+<table>
+<thead>
+<tr>
+  <th>model</th>
+  <th>accuracy</th>
+  <th>precision</th>
+  <th>recall</th>
+  <th><strong>F1 (popular)</strong></th>
+  <th>ROC-AUC</th>
+  <th>fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Random Forest</strong></td>
+  <td><strong>0.6664</strong></td>
+  <td>0.6649</td>
+  <td>0.7326</td>
+  <td><strong>0.6971</strong></td>
+  <td><strong>0.7264</strong></td>
+  <td>18.3 s</td>
+</tr>
+<tr>
+  <td>SVM (RBF)</td>
+  <td>0.6559</td>
+  <td>0.6588</td>
+  <td>0.7124</td>
+  <td>0.6846</td>
+  <td>0.7142</td>
+  <td>131.0 s</td>
+</tr>
+<tr>
+  <td>Logistic Regression</td>
+  <td>0.6523</td>
+  <td>0.6581</td>
+  <td>0.7004</td>
+  <td>0.6786</td>
+  <td>0.7053</td>
+  <td>0.3 s</td>
+</tr>
+<tr>
+  <td>Decision Tree</td>
+  <td>0.6399</td>
+  <td>0.6457</td>
+  <td>0.6934</td>
+  <td>0.6687</td>
+  <td>0.6875</td>
+  <td>1.3 s</td>
+</tr>
+<tr>
+  <td>KNN (k=75)</td>
+  <td>0.6407</td>
+  <td>0.6571</td>
+  <td>0.6573</td>
+  <td>0.6572</td>
+  <td>0.6902</td>
+  <td>0.6 s</td>
+</tr>
+</tbody>
+</table>
+<p>Random Forest confusion matrix on the test set:</p>
+<table>
+<thead>
+<tr>
+  <th></th>
+  <th>predicted: not popular</th>
+  <th>predicted: popular</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>actual: not popular</strong></td>
+  <td>2 240</td>
+  <td>1 534</td>
+</tr>
+<tr>
+  <td><strong>actual: popular</strong></td>
+  <td>1 111</td>
+  <td>3 044</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading.</strong> All five families land inside a narrow F1 band of 0.657–0.697 and an AUC band of
+0.687–0.726: the choice of algorithm moves the result by ~0.04, far less than the choice of target
+does. Recall (0.73) exceeds precision (0.66) because the model leans towards &quot;popular&quot; — a
+reasonable bias for a scheduling tool, where a missed hit costs more than a wasted slot. The SVM
+costs 400× the training time of Logistic Regression for +0.006 F1; on this dataset it is not worth
+it.</p>
+<p>Both numbers must be read with the split in mind: classification is <em>easier</em> than regression here
+because the median split discards the impossible tail and asks only &quot;above or below 1 400&quot;; and
+&quot;popular&quot; is not &quot;viral&quot; — a 100 000-share article and a 1 500-share article are identical to this
+classifier.</p>
+<h3>4.4 Exp. 8 — Which features matter?</h3>
+<p>Permutation importance on the test set (drop in R² when a column is shuffled), Random Forest
+regressor, 5 repeats (<code>exp8_permutation_importance.csv</code>):</p>
+<table>
+<thead>
+<tr>
+  <th>feature</th>
+  <th>Δ R² (mean ± sd)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>kw_avg_avg</code></td>
+  <td><strong>0.0565 ± 0.0020</strong></td>
+</tr>
+<tr>
+  <td><code>kw_max_avg</code></td>
+  <td>0.0196 ± 0.0011</td>
+</tr>
+<tr>
+  <td><code>self_reference_avg_sharess</code></td>
+  <td>0.0172 ± 0.0027</td>
+</tr>
+<tr>
+  <td><code>is_weekend</code></td>
+  <td>0.0158 ± 0.0010</td>
+</tr>
+<tr>
+  <td><code>self_reference_min_shares</code></td>
+  <td>0.0127 ± 0.0022</td>
+</tr>
+<tr>
+  <td><code>kw_max_max</code></td>
+  <td>0.0116 ± 0.0011</td>
+</tr>
+<tr>
+  <td><code>num_hrefs</code></td>
+  <td>0.0064 ± 0.0008</td>
+</tr>
+<tr>
+  <td><code>data_channel_is_tech</code></td>
+  <td>0.0057 ± 0.0015</td>
+</tr>
+<tr>
+  <td><code>LDA_00</code></td>
+  <td>0.0052 ± 0.0008</td>
+</tr>
+<tr>
+  <td>everything else</td>
+  <td>&lt; 0.005</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/exp8_permutation_importance.png" alt="Permutation importance" />
+<em>Figure 4 — permutation importance on test R² (Random Forest regressor).</em></p>
+<p><img src="figures/exp8_group_importance.png" alt="&quot;Importance by feature group&quot;" />
+<em>Figure 5 — share of total importance by feature group (Random Forest classifier).</em></p>
+<table>
+<thead>
+<tr>
+  <th>feature group</th>
+  <th>share of importance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>content &amp; links (length, media, hrefs, readability)</td>
+  <td>33.5 %</td>
+</tr>
+<tr>
+  <td>keywords (<code>kw_*</code>)</td>
+  <td>23.9 %</td>
+</tr>
+<tr>
+  <td>LDA topics</td>
+  <td>15.0 %</td>
+</tr>
+<tr>
+  <td>title / subjectivity / polarity</td>
+  <td>12.9 %</td>
+</tr>
+<tr>
+  <td>self-reference shares</td>
+  <td>8.0 %</td>
+</tr>
+<tr>
+  <td>channel</td>
+  <td>3.5 %</td>
+</tr>
+<tr>
+  <td>publishing day</td>
+  <td>3.3 %</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One third of the model's signal (31.9 %) is Mashable's own historical performance</strong>, i.e. the
+<code>kw_*</code> and <code>self_reference_*</code> blocks; content, links, topics and timing share the remaining 68.1 %.
+<code>kw_avg_avg</code> alone is worth more test R² than any other ten features combined. Among genuinely
+textual properties, the model prefers <em>how many outbound links</em> an article has over its length,
+sentiment or readability.</p>
+<p>The standardised logistic coefficients tell a cautionary tale: the two largest terms are
+<code>n_non_stop_words</code> (+1.52) and <code>n_non_stop_unique_tokens</code> (−1.01), which are <strong>artefacts</strong> of the
+1 181 empty articles (both ratios are degenerate for zero-token rows). The first interpretable term
+is <code>kw_avg_avg</code> (+0.94). Impurity-based importances agree with the permutation ranking at the top
+(<code>kw_avg_avg</code> 0.077, <code>kw_max_avg</code> 0.050) but inflate continuous, high-cardinality features lower
+down, which is why we prefer the permutation view.</p>
+<hr />
+<h2>5. Interpretation: what an article's features cannot capture</h2>
+<p><strong>A low R² here is not a bug — it is the finding.</strong> The features describe the article; virality is
+a property of the <em>audience and the environment</em> the article lands in. Concretely, nothing in the
+58 columns measures any of the following, and each of them can move shares by an order of magnitude:</p>
+<ol>
+<li><strong>Distribution and placement.</strong> Which slot the homepage gives it, whether the site's own social
+accounts push it, whether it is picked up by an aggregator. Mashable's own share counts reflect
+editorial promotion as much as intrinsic appeal.</li>
+<li><strong>The competing news cycle.</strong> Shares are partly a zero-sum competition for attention within a
+day. Two identical articles published on a quiet Sunday and during a breaking-news Monday get
+different outcomes — and <code>weekday_is_*</code> is a very crude proxy for that (it is worth only 3.3 % of
+importance).</li>
+<li><strong>Off-site amplification.</strong> A single celebrity or large account sharing an article can multiply
+its reach. This is exactly what distinguishes the 843 300-share outlier from the 1 400-share
+median, and it is invisible to content features.</li>
+<li><strong>Audience composition and platform algorithm changes.</strong> Mashable's Facebook-referred traffic was
+not stationary over 2013–2015. Nothing in the data records the platform's reach policy, so the
+historical keyword features can silently decay.</li>
+<li><strong>Article quality as humans judge it.</strong> The dataset has readability, subjectivity and LDA topic
+mix, but no measure of reporting quality, originality, headline cleverness in context, or visual
+appeal of the thumbnail. These are plausibly what makes the difference between a good and a great
+share count.</li>
+<li><strong>Timing within the day, and the article's own first hour.</strong> Early shares are highly predictive of
+later shares, but they are by definition unavailable before publication.</li>
+</ol>
+<p><strong>What this means for the two formulations.</strong> Regression is close to useless for magnitude
+(share-scale R² ≈ 0.00–0.03, MAE barely better than always predicting 1 400), but the <em>ranking</em> it
+produces is real (2.8× median lift from the lowest to the highest predicted quintile). Classification
+is usable (F1 ≈ 0.70 for &quot;above/below the median&quot;) but describes a coarse two-way decision, not a
+virality forecast. A practical tool would use the ranking plus the probability, and would be honest
+about the tail: &quot;this looks like a top-quintile article&quot; — not &quot;this will get 27 000 shares&quot;.</p>
+<p><strong>The self-fulfilling loop.</strong> Because a third of the model's importance comes from <code>kw_*</code> and
+<code>self_reference_*</code> — shares of <em>previously published</em> articles — the model largely predicts the past
+forward. That is legitimate (those numbers exist before publication) but it means performance is
+borrowed from stationarity: if the audience changes, the strongest features break first.</p>
+<hr />
+<h2>6. Limitations and threats to validity</h2>
+<ol>
+<li><strong>Single hold-out split.</strong> One 80/20 split at <code>random_state=42</code>. Differences of ~0.01 in F1 or
+~50 shares in MAE between neighbouring models are within split noise. k-fold cross-validation
+would give tighter intervals; it would not change the ordering of the families or the conclusion
+that R² on the raw scale is ~0.</li>
+<li><strong>No hyper-parameter search.</strong> Settings are documented, sensible defaults. Tuning Random Forest
+or SVM could add a few points of log-scale R², but §4.4 shows the limitation is the <em>features</em>,
+not the capacity: the model already extracts ~0.17 of log-scale variance and the best single
+feature contributes 0.057.</li>
+<li><strong>Median split.</strong> Balanced by construction and flattering: &quot;popular&quot; means &quot;above 1 400 shares&quot;,
+not &quot;viral&quot;. A more demanding label (top decile, or log-share regression) produces much weaker
+results — which is the point of §5.</li>
+<li><strong>Degenerate ratio features.</strong> 1 181 zero-token articles give <code>n_non_stop_words</code> /
+<code>n_non_stop_unique_tokens</code> meaningless values, and these two dominate the linear coefficients.
+A production version would repair or drop them; we kept them to stay comparable with published
+baselines and disclosed the effect.</li>
+<li><strong><code>kw_*</code> and <code>self_reference_*</code> are history.</strong> They are legitimately available before
+publication, but they encode the site's past distribution and are the features most likely to
+decay. They are also the reason the model's top signal is not about the article at all.</li>
+<li><strong>Dropping <code>timedelta</code> costs information.</strong> It removes calendar drift and seasonal effects, which
+is deliberate: keeping it would make the task a memorisation of a fixed two-year window rather
+than a genuinely pre-publication prediction.</li>
+<li><strong>Single site, single era.</strong> Mashable 2013–2015 with Facebook-dominant distribution. None of these
+numbers transfer to another publisher without re-training.</li>
+<li><strong>Metric sensitivity to outliers.</strong> Share-scale R² is dominated by the largest articles; it is
+reported precisely so that the failure on the tail is visible, and paired with MAE, median
+absolute error and the quintile table so the reader can see what the model <em>is</em> good at.</li>
+</ol>
+<hr />
+<h2>7. Reproducibility</h2>
+<pre><code>IML Project lab/
+├── data/raw/OnlineNewsPopularity.csv     # UCI archive, unmodified
+├── notebooks/P11_online_news_popularity.ipynb   # executed, all outputs present
+├── src/                                  # tested library used by notebook + pipeline
+│   ├── config.py  data.py  preprocess.py  eda.py
+│   ├── regression.py  classification.py  interpret.py  run_all.py
+├── demo/predict_demo.py                  # live demo (loads models/model_bundle.joblib)
+├── tools/build_notebook.py               # rebuild + execute the notebook head-less
+├── reports/report.md  report figures &amp; results
+└── models/model_bundle.joblib            # Random Forest pair for the demo
+</code></pre>
+<pre><code class="language-bash">python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+python -m src.run_all                              # ~6 min -&gt; all tables, figures, model bundle
+jupyter lab notebooks/P11_online_news_popularity.ipynb
+python demo/predict_demo.py --interactive          # live demo
+</code></pre>
+<p><em>Environment note.</em> The machine used for development runs Python 3.15, where Windows Application
+Control blocks several pandas / scikit-learn extension DLLs (<code>WinError 4551</code>). The analysis therefore
+runs on <strong>Python 3.14.5</strong> in <code>.venv</code> with <code>pandas 3.1.1</code>, <code>numpy 2.5.5</code>, <code>scikit-learn 1.9.1</code>,
+<code>matplotlib 3.11.2</code>. Pinning those versions reproduces the numbers in this report exactly
+(<code>random_state=42</code> everywhere). Full pipeline runtime: <strong>346 s</strong> (SVM 131 s, two Random Forests
+~18 s each, permutation importance ~40 s).</p>
+<p>Every number quoted above is generated by the pipeline, not typed by hand: <code>reports/results/*.csv</code>
+holds the tables and <code>reports/results/summary.json</code> the headline figures.</p>
+<hr />
+<h2>8. Contribution table</h2>
+<table>
+<thead>
+<tr>
+  <th>Member</th>
+  <th>Main contributions</th>
+  <th>Share</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><em>Member A</em></td>
+  <td>Data acquisition, row-count verification, EDA (Exp. 1), repository setup</td>
+  <td>25 %</td>
+</tr>
+<tr>
+  <td><em>Member B</em></td>
+  <td>Preprocessing + log-target justification (Exp. 2), Linear Regression (Exp. 3)</td>
+  <td>25 %</td>
+</tr>
+<tr>
+  <td><em>Member C</em></td>
+  <td>Classification track (Exp. 4, 5–8): median split, LR/DT/RF/KNN/SVM, metrics</td>
+  <td>25 %</td>
+</tr>
+<tr>
+  <td><em>Member D</em></td>
+  <td>Interpretation (Exp. 8), report, slides, live demo, review</td>
+  <td>25 %</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Replace the placeholders with the group's real names and adjust the split to what actually
+happened</strong> before submitting. Keep the table truthful — it is graded.</p>
+</blockquote>
+<hr />
+<h2>9. AI-use declaration</h2>
+<p>Generative AI assistance (Anthropic Claude, via a coding agent) was used for:</p>
+<ul>
+<li><strong>Code scaffolding and refactoring</strong> — drafting the <code>src/</code> modules, the notebook builder and the
+demo script from the group's specification; all code was reviewed, executed and checked by the
+group.</li>
+<li><strong>Text editing</strong> — tightening wording and structure of this report and the slide outline.</li>
+</ul>
+<p>What the AI did <strong>not</strong> do: choose the research question, decide the protocol (split, threshold,
+metrics), or invent results. Every figure and table in §4 is produced by running the code in this
+repository on the public dataset; the group verified them against <code>reports/results/*.csv</code>. All
+claims about the data (39 644 rows loaded, 1 181 empty articles, skew 33.96, etc.) are computed by
+<code>src/data.py</code> and <code>src/eda.py</code>, not asserted from memory. The group remains responsible for the
+analysis, the interpretation in §5 and the limitations in §6.</p>
+<hr />
+<h2>10. References</h2>
+<ol>
+<li>Fernandes, K., Vinagre, P., &amp; Cortez, P. (2015). <em>A Proactive Intelligent Decision Support System
+for Predicting the Popularity of Online News.</em> EPIA 2015, LNCS 9273, pp. 535–546. — source of the
+dataset and the original published baselines for this task.</li>
+<li>UCI Machine Learning Repository. <em>Online News Popularity Data Set.</em>
+https://archive.ics.uci.edu/dataset/332/online+news+popularity — 39 797 instances advertised;
+39 644 loaded (§2.1).</li>
+<li>Breiman, L. (2001). Random Forests. <em>Machine Learning</em> 45(1), 5–32.</li>
+<li>Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. <em>JMLR</em> 12, 2825–2830.</li>
+<li>Hyndman, R. J., &amp; Koehler, A. B. (2006). Another look at measures of forecast accuracy.
+<em>International Journal of Forecasting</em> 22(4), 679–688. — why MAE on the original scale matters
+for skewed targets, and why R² alone can mislead.</li>
+</ol>
+
+</body>
+</html>

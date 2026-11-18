@@ -1,0 +1,18 @@
+statistic,value
+count,39644.0
+mean,3395.4
+std,11627.0
+p1,381.0
+p5,584.0
+p25,946.0
+p50,1400.0
+p75,2800.0
+p90,6200.0
+p95,10800.0
+p99,31657.0
+p99.9,112992.7
+max,843300.0
+skew,33.96
+kurtosis,1832.7
+mean / median,2.43
+share of total shares in top 1% of articles,0.218

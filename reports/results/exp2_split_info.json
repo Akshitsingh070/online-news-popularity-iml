@@ -1,0 +1,9 @@
+{
+  "rows": 39644,
+  "features": 58,
+  "train_rows": 31715,
+  "test_rows": 7929,
+  "popularity_threshold_shares": 1400.0,
+  "target": "log(shares) for regression; shares >= training median for classification",
+  "random_state": 42
+}

@@ -1,0 +1,6 @@
+model,MAE (shares),RMSE (shares),R2 (share scale),R2 (log scale),median abs err,fit (s),notes
+Baseline: training median,2395.4,11152.9,-0.0308,-0.0578,600.0,0.0,constant 1400 shares
+Linear Regression,2347.8,11000.9,-0.0029,0.1274,733.1,0.1,scaled features
+Decision Tree,3019.3,11340.3,-0.0657,-0.3903,975.1,1.4,min_samples_leaf=5
+Random Forest,2316.5,10967.0,0.0033,0.1697,745.8,16.1,"300 trees, min_samples_leaf=2"
+KNN Regressor (k=75),2334.9,11034.9,-0.0091,0.1077,703.8,0.0,k=75 chosen on training-only validation

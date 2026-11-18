@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P11 — Online News Popularity (10-Minute Presentation)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  .deck-container {
+    width: 90vw;
+    max-width: 1100px;
+    height: 75vh;
+    background: #1e293b;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    border: 1px solid #334155;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 50px;
+    overflow-y: auto;
+  }
+  .slide { display: none; flex-direction: column; height: 100%; }
+  .slide.active { display: flex; }
+  .badge {
+    align-self: flex-start;
+    background: #0284c7;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  h2 { font-size: 26px; color: #38bdf8; margin-bottom: 16px; font-weight: 700; }
+  h3 { font-size: 18px; color: #94a3b8; margin: 12px 0 6px 0; }
+  p, li { font-size: 15px; line-height: 1.6; color: #cbd5e1; }
+  ul { margin-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+  strong { color: #f1f5f9; }
+  .highlight-box {
+    background: #0f172a;
+    border-left: 4px solid #38bdf8;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 12px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid #334155;
+    padding: 6px 12px;
+    text-align: left;
+  }
+  th { background: #0f172a; color: #38bdf8; }
+  tr:nth-child(even) { background: #1a2436; }
+  .notes-panel {
+    margin-top: auto;
+    background: #0b1329;
+    border: 1px dashed #475569;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .notes-panel strong { color: #f59e0b; }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  button {
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:hover { background: #0369a1; }
+  .counter { color: #64748b; font-size: 14px; font-weight: 600; }
+  .kbd-hint { color: #475569; font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="deck-container">
+  <!-- Slide 1 -->
+  <div class="slide active">
+    <div class="badge">Slide 1 / 8 • Min 0:00–1:00</div>
+    <h2>Online News Popularity: Predicting Article Sharing</h2>
+    <p><strong>Course:</strong> Introduction to Machine Learning (Project Lab) · <strong>Group:</strong> G11</p>
+    <div class="highlight-box">
+      <strong>Core Question:</strong> Can an editor predict social shares <em>before publication</em> using article text statistics, media assets, LDA topics, publishing day, and historical keyword performance?
+    </div>
+    <h3>Dual Formulations</h3>
+    <ul>
+      <li><strong>Regression:</strong> Predict exact share counts (answers <em>"how many shares?"</em>; dominated by viral outliers).</li>
+      <li><strong>Classification:</strong> Predict binary popularity ($shares \ge 1,400$, training median; answers <em>"prominent slot?"</em>).</li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Welcome the panel. Introduce the problem of forecasting reach before publication and clarify the business purpose of both regression and classification formulations.
+    </div>
+  </div>
+
+  <!-- Slide 2 -->
+  <div class="slide">
+    <div class="badge">Slide 2 / 8 • Min 1:00–2:15</div>
+    <h2>Data Audit & The Skewness Challenge</h2>
+    <ul>
+      <li><strong>Row-Count Discrepancy:</strong> Loaded <strong>39,644 rows × 61 columns</strong> (153 fewer rows than advertised on UCI, verified at load time; 0 duplicates, 0 missing).</li>
+      <li><strong>Extreme Target Skewness:</strong>
+        <ul>
+          <li>Median: <strong>1,400</strong> | Mean: <strong>3,395</strong> | Max: <strong>843,300</strong></li>
+          <li>Raw skewness: <strong>33.96</strong> | Kurtosis: <strong>1,832.7</strong></li>
+          <li>Top 1% of articles capture <strong>21.8% of all social shares</strong>!</li>
+        </ul>
+      </li>
+      <li><strong>Log Transformation:</strong> $\log(shares)$ drops skewness from 33.96 to <strong>1.02</strong>, stabilizing variance.</li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Emphasize data integrity: verified row count, 0 missing values, and how extreme tail virality necessitates modeling log(shares).
+    </div>
+  </div>
+
+  <!-- Slide 3 -->
+  <div class="slide">
+    <div class="badge">Slide 3 / 8 • Min 2:15–3:30</div>
+    <h2>Methodological Rigor & Protocol</h2>
+    <ul>
+      <li><strong>Leak-Free Holdout Split:</strong> 80% Train (31,715) / 20% Test (7,929), seed=42. Scalers fit <em>only</em> on train. Threshold = training median (1,400).</li>
+      <li><strong>Pruned Columns:</strong> Dropped <code>url</code> (ID) and <code>timedelta</code> (prevents memorizing calendar drift).</li>
+      <li><strong>Empirical Proof for Log-Target:</strong>
+        <table>
+          <tr><th>Target</th><th>MAE (shares)</th><th>Median Error (shares)</th><th>Log R²</th></tr>
+          <tr><td>Raw shares</td><td>2,998.7</td><td>1,682.3</td><td>-0.3898</td></tr>
+          <tr><td><strong>Log(shares)</strong></td><td><strong>2,347.8 (-22%)</strong></td><td><strong>733.1 (-56%)</strong></td><td><strong>+0.1274</strong></td></tr>
+        </table>
+      </li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Highlight the leak-free protocol, why dropping timedelta prevents temporal memorization, and how log-target cuts typical error by more than half.
+    </div>
+  </div>
+
+  <!-- Slide 4 -->
+  <div class="slide">
+    <div class="badge">Slide 4 / 8 • Min 3:30–5:00</div>
+    <h2>Regression Track & Quintile Ranking</h2>
+    <table>
+      <tr><th>Model</th><th>MAE (shares)</th><th>Share R²</th><th>Log R²</th><th>Median Error</th></tr>
+      <tr><td>Median Baseline</td><td>2,395.4</td><td>-0.0308</td><td>-0.0578</td><td>600.0</td></tr>
+      <tr><td>Linear Regression</td><td>2,347.8</td><td>-0.0029</td><td>+0.1274</td><td>733.1</td></tr>
+      <tr><td>Decision Tree</td><td>3,019.3</td><td>-0.0657</td><td>-0.3903</td><td>975.1</td></tr>
+      <tr><td><strong>Random Forest</strong></td><td><strong>2,316.5</strong></td><td><strong>+0.0033</strong></td><td><strong>+0.1697</strong></td><td>745.8</td></tr>
+      <tr><td>KNN (k=75)</td><td>2,334.9</td><td>-0.0091</td><td>+0.1077</td><td><strong>703.8</strong></td></tr>
+    </table>
+    <div class="highlight-box">
+      <strong>Academic Honesty:</strong> Share-scale $R^2 \approx 0.00$. Virality is determined by external dynamics.<br>
+      <strong>Monotonic Quintile Ranking:</strong> Held-out test articles in Q1 have actual median of <strong>957</strong> vs. <strong>2,700 shares in Q5 (2.8× lift)</strong>.
+    </div>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Be proud of raw R² ≈ 0: virality cannot be predicted by word count. But celebrate the 2.8× monotonic quintile lift that makes this model a valuable triage system.
+    </div>
+  </div>
+
+  <!-- Slide 5 -->
+  <div class="slide">
+    <div class="badge">Slide 5 / 8 • Min 5:00–6:15</div>
+    <h2>Classification: Five Model Families</h2>
+    <table>
+      <tr><th>Model</th><th>Accuracy</th><th>Recall</th><th>F1 Score</th><th>ROC-AUC</th><th>Fit Time</th></tr>
+      <tr><td><strong>Random Forest</strong></td><td><strong>66.64%</strong></td><td><strong>73.26%</strong></td><td><strong>0.6971</strong></td><td><strong>0.7264</strong></td><td>18.3 s</td></tr>
+      <tr><td>SVM (RBF)</td><td>65.59%</td><td>71.24%</td><td>0.6846</td><td>0.7142</td><td>131.0 s</td></tr>
+      <tr><td>Logistic Reg</td><td>65.23%</td><td>70.04%</td><td>0.6786</td><td>0.7053</td><td><strong>0.3 s</strong></td></tr>
+      <tr><td>Decision Tree</td><td>63.99%</td><td>69.34%</td><td>0.6687</td><td>0.6875</td><td>1.3 s</td></tr>
+      <tr><td>KNN (k=75)</td><td>64.07%</td><td>65.73%</td><td>0.6572</td><td>0.6902</td><td>0.6 s</td></tr>
+    </table>
+    <ul>
+      <li>All 5 families land within a narrow F1 band (0.66–0.70).</li>
+      <li>Recall (73%) > Precision (66%): ideal for editorial scheduling where false negatives are costly.</li>
+      <li>SVM took 400× longer than Logistic Regression for only +0.006 F1 gain.</li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Explain how classification resolves the tail issue, why higher recall is editorially desirable, and note the computational trade-off of SVM.
+    </div>
+  </div>
+
+  <!-- Slide 6 -->
+  <div class="slide">
+    <div class="badge">Slide 6 / 8 • Min 6:15–7:30</div>
+    <h2>Model Interpretability & Feature Drivers</h2>
+    <ul>
+      <li><strong>Permutation Feature Importance (Held-out Test):</strong>
+        <ul>
+          <li><code>kw_avg_avg</code> (+0.0565 ΔR²): historical average shares of article keywords.</li>
+          <li><code>kw_max_avg</code> (+0.0196) and <code>self_reference_avg_sharess</code> (+0.0172).</li>
+        </ul>
+      </li>
+      <li><strong>Signal Distribution:</strong>
+        <ul>
+          <li><strong>31.9%</strong> Historical past performance (<code>kw_*</code>, <code>self_reference_*</code>).</li>
+          <li><strong>33.5%</strong> Content & links | <strong>15.0%</strong> LDA topics | <strong>12.9%</strong> Sentiment.</li>
+        </ul>
+      </li>
+      <li><strong>Core Takeaway:</strong> The model is predicting the past forward—it recognizes topics that audience previously shared, rather than judging writing brilliance.</li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Reveal the primary drivers of prediction: historical keyword reception dominates over word count or emotional sentiment.
+    </div>
+  </div>
+
+  <!-- Slide 7 -->
+  <div class="slide">
+    <div class="badge">Slide 7 / 8 • Min 7:30–9:00</div>
+    <h2>Interactive Live Demonstration</h2>
+    <div class="highlight-box">
+      <strong>Command:</strong> <code>python demo/predict_demo.py</code> (or <code>--interactive</code>)
+    </div>
+    <ul>
+      <li><strong>Live Case 1 (Typical Article):</strong> Word count 406, Tech channel, trending keywords $\to$ Predicted 1,928 shares ($P=0.81$ [POPULAR]), Actual 1,900 shares (+1% error).</li>
+      <li><strong>Live Case 2 (Viral Extreme - 843k shares):</strong> Model predicts 27,456 shares ($P=0.85$ [POPULAR]) $\to$ Correctly flags high probability without hallucinating millions of shares.</li>
+      <li><strong>Live Case 3 (Quintile Calibration):</strong> Demonstrates monotonic sorting across test rows.</li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Switch to command prompt, run <code>python demo/predict_demo.py</code>, walk the panel through the real test rows and the viral outlier test.
+    </div>
+  </div>
+
+  <!-- Slide 8 -->
+  <div class="slide">
+    <div class="badge">Slide 8 / 8 • Min 9:00–10:00</div>
+    <h2>Limitations, Deliverables & Conclusion</h2>
+    <ul>
+      <li><strong>Why Virality Cannot Be Fully Forecast Before Publication:</strong>
+        <ul>
+          <li>Editorial promotion, homepage slotting, aggregator picks, and breaking news competition occur <em>after</em> publication.</li>
+        </ul>
+      </li>
+      <li><strong>All 4 Required Deliverables Complete:</strong>
+        <ul>
+          <li>✅ Executed Notebook: <code>notebooks/P11_online_news_popularity.ipynb</code></li>
+          <li>✅ 6–8 Page Report: <code>reports/report.pdf</code> (8 pages, complete)</li>
+          <li>✅ GitHub Repository: fully structured, committed, with <code>README.md</code></li>
+          <li>✅ 10-Minute Presentation & Live Demo: <code>docs/slides.md</code> & <code>demo/predict_demo.py</code></li>
+        </ul>
+      </li>
+    </ul>
+    <div class="notes-panel">
+      <strong>🎙️ Presenter Script:</strong> Wrap up with clear summary of takeaways, verify all deliverables, and invite questions from the panel.
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button onclick="prevSlide()">◀ Previous</button>
+  <span class="counter" id="counter">Slide 1 / 8</span>
+  <button onclick="nextSlide()">Next ▶</button>
+</div>
+<div class="kbd-hint">Keyboard: Use Left (←) / Right (→) Arrow keys to navigate slides.</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+
+  function showSlide(idx) {
+    slides[currentSlide].classList.remove('active');
+    currentSlide = (idx + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    counter.innerText = `Slide ${currentSlide + 1} / ${slides.length}`;
+  }
+
+  function nextSlide() { showSlide(currentSlide + 1); }
+  function prevSlide() { showSlide(currentSlide - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "rows_loaded": 39644,
+  "rows_claimed_by_uci_page": 39797,
+  "features": 58,
+  "train_rows": 31715,
+  "test_rows": 7929,
+  "popularity_threshold_shares": 1400.0,
+  "median_shares": 1400.0,
+  "mean_shares": 3395.4,
+  "max_shares": 843300,
+  "skew_shares": 33.96,
+  "skew_log_shares": 1.02,
+  "top_correlations": [
+    {
+      "feature": "kw_avg_avg",
+      "spearman": 0.25562215091267954,
+      "pearson": 0.22172046337867043
+    },
+    {
+      "feature": "kw_max_avg",
+      "spearman": 0.22329144670874912,
+      "pearson": 0.10929199372627993
+    },
+    {
+      "feature": "self_reference_avg_sharess",
+      "spearman": 0.19217449967544295,
+      "pearson": 0.08721703140596002
+    },
+    {
+      "feature": "self_reference_min_shares",
+      "spearman": 0.18151675323085592,
+      "pearson": 0.07335357765614081
+    },
+    {
+      "feature": "self_reference_max_shares",
+      "spearman": 0.16872472036258646,
+      "pearson": 0.07742689273442277
+    }
+  ],
+  "best_regression": {
+    "model": "Random Forest",
+    "MAE (shares)": 2316.5,
+    "RMSE (shares)": 10967.0,
+    "R2 (share scale)": 0.0033,
+    "R2 (log scale)": 0.1697,
+    "median abs err": 745.8,
+    "fit (s)": 16.1,
+    "notes": "300 trees, min_samples_leaf=2"
+  },
+  "best_classification": {
+    "model": "Random Forest",
+    "accuracy": 0.6664,
+    "precision": 0.6649,
+    "recall": 0.7326,
+    "F1 (popular)": 0.6971,
+    "ROC-AUC": 0.7264,
+    "fit (s)": 18.1,
+    "notes": "300 trees, min_samples_leaf=2"
+  },
+  "knn_k": 75,
+  "history_share_of_importance": 31.9,
+  "runtime_seconds": 345.7
+}

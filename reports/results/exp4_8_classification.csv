@@ -1,0 +1,6 @@
+model,accuracy,precision,recall,F1 (popular),ROC-AUC,fit (s),notes
+Logistic Regression,0.6523,0.6581,0.7004,0.6786,0.7053,0.2,"scaled features, C=1"
+Decision Tree,0.6399,0.6457,0.6934,0.6687,0.6875,1.2,"max_depth=8, min_samples_leaf=20"
+Random Forest,0.6664,0.6649,0.7326,0.6971,0.7264,18.1,"300 trees, min_samples_leaf=2"
+KNN (k=75),0.6407,0.6571,0.6573,0.6572,0.6902,0.0,"k=75, distance weights"
+SVM (RBF),0.6559,0.6588,0.7124,0.6846,0.7142,118.4,"RBF kernel, C=1, gamma='scale'"

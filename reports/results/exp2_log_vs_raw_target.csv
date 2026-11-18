@@ -1,0 +1,3 @@
+target,MAE (shares),median abs err (shares),R2 (share scale),R2 (log scale)
+Linear Regression on raw shares,2998.7,1682.3,0.0262,-0.3898
+Linear Regression on log(shares),2347.8,733.1,-0.0029,0.1274

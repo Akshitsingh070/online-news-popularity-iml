@@ -1,0 +1,7 @@
+quantity,value
+rows loaded from CSV,39644
+rows quoted on the UCI dataset page,39797
+difference,153
+columns loaded,61
+predictive features after dropping url/timedelta,58
+target,shares
